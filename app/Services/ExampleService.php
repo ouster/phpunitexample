@@ -8,6 +8,7 @@
 
 namespace Services;
 
+use Exception;
 
 class ExampleService {
 

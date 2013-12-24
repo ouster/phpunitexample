@@ -9,6 +9,7 @@
 namespace Controllers;
 
 use Silex\Application;
+use Symfony\Component\HttpFoundation\Request;
 
 class ExampleController {
 
@@ -18,11 +19,11 @@ class ExampleController {
     $this->repo = $repo;
   }
 
-  public function getComplexThing($part1, $part2, Request $request, Application $app) {
+  public function getComplexThing(Request $request, Application $app) {
 
     $queryParam = $request->get('part3');
 
-    return $app->json($this->repo->getComplexThing($part1, $part2, $queryParam), 200);
+    return $app->json($this->repo->getComplexThing(null, null, $queryParam), 200);
   }
 
 } 
