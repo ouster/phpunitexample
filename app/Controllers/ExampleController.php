@@ -19,11 +19,13 @@ class ExampleController {
     $this->repo = $repo;
   }
 
-  public function getComplexThing(Request $request, Application $app) {
+  public function getComplexThing($id, $partNo, Request $request, Application $app) {
 
-    $queryParam = $request->get('part3');
-
-    return $app->json($this->repo->getComplexThing(null, null, $queryParam), 200);
+    return $app->json($this->repo->getComplexThing($id, $partNo), 200);
   }
 
+  public function createComplexThing($id, $partNo, Request $request, Application $app) {
+
+    return $app->json($this->repo->createComplexThing($id, $partNo), 200);
+  }
 } 

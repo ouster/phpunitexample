@@ -16,19 +16,24 @@ class ExampleService {
   protected $constructor;
   protected $args;
 
-  public function __construct($complex, $constructor, $args = true){
+  public function __construct($complex, $constructor, $args = true) {
     $this->complex = $complex;
     $this->constructor = $constructor;
     $this->args = $args;
   }
 
-  public function createComplexThing($part1,$part2){
-    //call into repo/db
-    //complex backend service stuff
+  public function createComplexThing($id, $partNo) {
+
+    //TODO create complexThing
+
+    return $this->getComplexThing($id, $partNo);
   }
 
-  public function getComplexThing($id){
-    // construct complex thing from repo / db
+  public function getComplexThing($id, $partNo, $filter = null) {
+
+    return ['id' => [$id => [1, 2, 3, 4, 5]],
+      'partNo' => [$partNo => ['a', 'b', 'c', 'd']],
+      'serial' => 1];
   }
 
 } 

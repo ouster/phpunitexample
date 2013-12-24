@@ -24,10 +24,14 @@ class ExampleControllerTest extends TestCaseBase {
       disableOriginalConstructor()->getMock();
 
     $exampleServiceMock->expects($this->any())
-      ->method('getPrivateCompetitionDetails')
-      ->will($this->returnValue($this->privateCompDetails));
+      ->method('getComplexThing')
+      ->will($this->returnValue(['foo' => 'bar']));
 
-    $this->app['example.service'] = $exampleServiceMock;
+    $exampleServiceMock->expects($this->any())
+      ->method('createComplexThing')
+      ->will($this->returnValue(['sna' => 'fu']));
+
+    $this->app['example.repository'] = $exampleServiceMock;
 
   }
 
@@ -36,13 +40,33 @@ class ExampleControllerTest extends TestCaseBase {
     $client = $this->createClient();
 
     $client->request('GET',
-      '/tipping/private-comps/details');
+      'http://localhost:9091/complexthing/1000/22323');
 
     $this->assertEquals($client->getResponse()->getStatusCode(), 200);
 
-    $data = object_to_array(json_decode($client->getResponse()->getContent()));
+    $json = $client->getResponse()->getContent();
 
-    $this->assertEquals(31561, $data['details'][0]['id']);
+    $data = object_to_array(json_decode($json));
+
+    $this->assertEquals('bar', $data['foo']);
+
+  }
+
+
+  public function testCreateComplexThing() {
+
+    $client = $this->createClient();
+
+    $client->request('POST',
+      'http://localhost:9091/complexthing/1000/22323');
+
+    $this->assertEquals($client->getResponse()->getStatusCode(), 200);
+
+    $json = $client->getResponse()->getContent();
+
+    $data = object_to_array(json_decode($json));
+
+    $this->assertEquals('fu', $data['sna']);
 
   }
 
