@@ -7,7 +7,7 @@ See here for useful information on Silex http://silex.sensiolabs.org/
 
 ## Prerequisites
 
-Php 5.4 (preferred)
+Php 5.4+ (preferred)
 
 You can probably use 5.3 but will have to setup a DocumentRoot to this project in your web server
 
@@ -23,17 +23,18 @@ sudo ./composer.phar install
 
 wget https://phar.phpunit.de/phpunit.phar
 
-chmod +x phpunit.phar
+chmod 755 phpunit.phar
 
-mv phpunit.phar /usr/local/bin/phpunit
+mv phpunit.phar /usr/local/bin/phpunit # somewhere on your path
 
 ## Why Unit Testing in Php
 
-* It's difficult to find information on Unit Testing in Php!
+* Coming from a Java background unit testing in php seems less common, and was not sure where to start.
 * As a newcomer to Php the language reminds me of a dear old slighty psychotic Aunt who sometimes forgets to take her pills, usually nice but can sometimes fling cutlery at you!
-* Unit Tests can protect against some of Php oddities - see here for extensive list of space oddities http://me.veekun.com/blog/2012/04/09/php-a-fractal-of-bad-design/
+* Unit Tests can protect against some of Php oddities - see here for extensive list of oddities http://me.veekun.com/blog/2012/04/09/php-a-fractal-of-bad-design/
 
-## To run the Example app in Php 5.4 built in webserver Use PostMan to test
+## POSTMAN to manually poke the Example appi.
+Use Php 5.4 built in webserver to host and Use PostMan to test
 
 php -S localhost:9091 -t web web/index.php
 
@@ -42,7 +43,7 @@ https://chrome.google.com/webstore/detail/postman-rest-client/fdmmgilgnpjigdojoj
 
 GET/POST http://localhost:9091/complexthing/1000/22323
 
-## Unit Testing in Php
+## phpunit to run Unit Tests from command line / or jenkins task
 
 From the project root type:
 
