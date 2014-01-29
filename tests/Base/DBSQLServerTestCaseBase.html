@@ -1,0 +1,211 @@
+<?php
+namespace Base;
+
+/**
+ * User: colshine
+ * Date: 3/10/13
+ * Time: 10:32 AM
+ * 
+ * Test Base to allow you to run unit tests against an actual SQL server DB
+ * It operates by your extend this in your Test:
+ * 1) opening attransaction
+ * 2) Deleting data from tables in FK dependency graph order
+ * 3) Resetting identity columns to zero so that result id values are predictable in a test
+ * 4) Your test runs
+ * 5) Transaction is rolled back and DB is back to whatever state
+ *
+ */
+use Services\Converter;
+use Services\MetaModel;
+use Silex\WebTestCase;
+use DateTime;
+use Models\Tipper;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Security\User;
+use Doctrine\DBAL\DBALException;
+use Symfony\Component\Validator\Constraints as Assert;
+
+
+class DBSQLServerTestCaseBase extends WebTestCase {
+
+  protected $logger;
+
+  protected $validator;
+
+  protected $db;
+
+  protected $token;
+
+  protected $dbSchemaPrefix = '<yourdatabase>.dbo.';
+
+  protected $currentTipper;
+
+  protected $injectMap;
+
+  public function initialiseData() {
+
+    //these are actual tables names in db to reset
+    $this->deleteAndReset([
+      'tableA', 'tableB', 'tableC'
+    ]);
+    //$this->db->commit();
+
+    //use actual table names as keys here too to avoid confusion
+    $tableA = $this->insert('tableA', [
+      'col1' => 'AFL',
+      'col2' => 0,
+      'col3' => 1,
+      'colDate1' => $this->formatISO(new DateTime('2013-07-08 11:14:15.638276')),
+      'colDate2' => $this->nowFormatISO(),
+      'colflag' => true,
+    ]);
+
+    $tableB = $this->insert('tableB', [
+      'col1' => 'Foo 2026',
+      'col2' => 2026,
+      'col3' => true,
+      'col4' => 'la',
+    ]);
+
+    $tableC = $this->insert('tableC', [
+      'col1' => 'MCG',
+      'col1' => true,
+      'col1' => true,
+    ]);
+
+   
+  }
+
+  public function setUp() {
+    parent::setUp();
+
+    $this->db->beginTransaction(); // wrap test in a transaction
+
+    $this->setCurrentTipper(1);
+
+    //use actual table names as keys here too to avoid confusion
+    $this->injectMap = [
+      'tableA' => [$this->app['tablea.repository'], new Converter(new MetaModel('Models\TableA'))], // have Models for ORM mapping
+      'tableB' => [$this->app['tableb.repository'], new Converter(new MetaModel('Models\TableB'))],
+      'tableC' => [$this->app['tablec.repository'], new Converter(new MetaModel('Models\TableC'))],
+    ];
+
+    $this->initialiseData();
+  }
+
+  protected function tearDown() {
+    parent::tearDown();
+    $this->db->rollback(); // rollback transaction after test
+    //$this->db->commit();
+  }
+
+//  protected function checkForIdentityColumn($table)
+//  {
+//
+//    $statement = $this->db->prepare('SELECT t.name AS table_name' .
+//                                    'FROM sys.tables AS t' .
+//                                    'JOIN sys.identity_columns c ON t.object_id = c.object_id' .
+//                                    'WHERE t.name = \''.$table.'\');');
+//    $result = $statement->fetchAll();
+//
+//    return (count($result) > 0 ? true : false);
+//  }
+
+  /*
+   * For each targeted table in the list clear of data and reset identity column
+   */
+  public function deleteAndReset($resetTableList) {
+    foreach ($resetTableList as $table) {
+      ;
+      $fulltablename = $this->dbSchemaPrefix . $table;
+
+      try {
+        $statement = $this->db->prepare('DELETE FROM ' . $fulltablename . ';');
+        $statement->execute();
+      } catch (DBALException $e) {
+        $this->logger->error('error deleting guff from table=' . $fulltablename . ', msg=' . $e->getMessage());
+
+        return;
+      }
+      try {
+        $statement = $this->db->prepare('DBCC CHECKIDENT(\'' . $fulltablename . '\', RESEED, 0);');
+        $statement->execute();
+      } catch (DBALException $e) {
+        $this->logger->warn("problem resetting identity column=" . $e->getMessage());
+      }
+    }
+  }
+
+
+  public function createApplication() {
+    $app_env = 'test';
+    $app = require __DIR__ . '/../../web/index.php';
+
+    $this->logger = $app['monolog'];
+    $this->validator = $app['validator'];
+
+    $this->db = $app['db'];
+
+    $this->token = new UsernamePasswordToken(new User(1, 'test', 'test', 'test', 'test', 'test@teste.com.au'), null, 'test');
+
+    return $app;
+  }
+
+  protected function convert($converter, $array) {
+    return $converter->createModel($array);
+  }
+
+  protected function formatISO(DateTime $dateTime) {
+    return $dateTime->format(DateTime::ISO8601);
+  }
+
+  //Silex ORM
+  // protected function insert($key, $array) {
+  //   $inject = $this->injectMap[$key];
+
+  //   $service = $inject[0];
+  //   $converter = $inject[1];
+
+  //   $id = $service->insert($converter->createModel($array), $this->token);
+
+  //   return $service->get($id);
+  // }
+
+  // protected function get($key, $id) {
+  //   $inject = $this->injectMap[$key];
+  //   $service = $inject[0];
+
+  //   return $service->get($id);
+  // }
+
+
+  /**
+   * @return string
+   */
+  protected function nowFormatISO() {
+    return $this->formatISO(new DateTime());
+  }
+
+  
+  /**
+   * Used by Silex ConstraintValidators
+   *
+   * @param $data
+   * @param $constraint
+   */
+  protected function validateAndAssert($data, $constraint) {
+    $errors = $this->validator->validateValue($data, $constraint);
+
+    if (count($errors) > 0) {
+      foreach ($errors as $error) {
+        $this->logger->addDebug($error->getPropertyPath() . ' ' . $error->getMessage());
+      }
+      $msg = '$errors = ' . print_r($errors, true) .
+        ', $data = ' . print_r($data, true) .
+        ', $constraint = ' . print_r($constraint);
+      $this->logger->addDebug($msg);
+      $this->fail($msg);
+    }
+  }
+
+}
